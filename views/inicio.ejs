@@ -1,0 +1,22 @@
+<%- include('partials/header') %>
+<h1>Panel de sucursal</h1>
+
+<% if (errorConexion) { %>
+  <p class="error">No se pudo conectar con el Banco Central: <%= errorConexion %></p>
+<% } else if (nodo) { %>
+  <div class="tarjeta">
+    <p><span class="etiqueta">Nodo</span><%= nodo.nombre %></p>
+    <p><span class="etiqueta">Tipo</span><%= nodo.tipo %></p>
+    <% if (nodo.efectivo_disponible !== undefined) { %>
+      <p><span class="etiqueta">Efectivo disponible</span>$<%= Number(nodo.efectivo_disponible).toLocaleString('es-MX') %></p>
+    <% } %>
+  </div>
+<% } %>
+
+<h2>Operaciones</h2>
+<div class="accesos">
+  <a href="/cuentas/nueva"><strong>Abrir cuenta</strong><span>Registrar un cliente nuevo con su saldo inicial</span></a>
+  <a href="/cuentas/buscar"><strong>Consultar cuenta</strong><span>Ver saldo y estado de una cuenta</span></a>
+  <a href="/historial"><strong>Historial y reportes</strong><span>Movimientos de la sucursal o de un cliente</span></a>
+</div>
+<%- include('partials/footer') %>

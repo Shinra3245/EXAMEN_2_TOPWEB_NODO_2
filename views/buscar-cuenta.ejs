@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+<h1>Consultar cuenta</h1>
+
+<form method="get" action="/cuentas/buscar" class="tarjeta en-linea">
+  <input name="numero" placeholder="Número de cuenta" value="<%= numero %>" required>
+  <button type="submit">Buscar</button>
+</form>
+
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+<% if (cuenta) { %>
+  <div class="tarjeta">
+    <p><strong>Cuenta:</strong> <%= cuenta.numero_cuenta %></p>
+    <p><strong>Titular:</strong> <%= cuenta.titular %></p>
+    <p><strong>Saldo:</strong> $<%= Number(cuenta.saldo).toLocaleString('es-MX') %></p>
+    <p><strong>Estado:</strong> <span class="estado <%= cuenta.estado %>"><%= cuenta.estado %></span></p>
+    <a href="/historial?cuenta=<%= encodeURIComponent(cuenta.numero_cuenta) %>">Ver movimientos</a>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= titulo %> | Sucursal</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="lateral">
+    <a class="marca" href="/">
+      <span class="marca-nombre">Sucursal</span>
+      <span class="marca-sub">Nodo 2</span>
+    </a>
+    <nav>
+      <a href="/" class="<%= ruta === '/' ? 'activo' : '' %>">Inicio</a>
+      <a href="/cuentas/nueva" class="<%= ruta === '/cuentas/nueva' ? 'activo' : '' %>">Abrir cuenta</a>
+      <a href="/cuentas/buscar" class="<%= ruta === '/cuentas/buscar' ? 'activo' : '' %>">Consultar cuenta</a>
+      <a href="/historial" class="<%= ruta === '/historial' ? 'activo' : '' %>">Historial y reportes</a>
+      <a href="/config" class="<%= ruta === '/config' ? 'activo' : '' %>">Conexión</a>
+      <a href="/docs" target="_blank">API Docs</a>
+    </nav>
+  </aside>
+  <div class="contenido">
+    <% if (typeof modoPrueba !== 'undefined' && modoPrueba) { %>
+      <div class="aviso"><strong>Modo prueba.</strong> Sin conexión al Banco Central: los datos son simulados. Configura BANCO_CENTRAL_URL y BANCO_CENTRAL_API_KEY en el .env del servidor.</div>
+    <% } %>
+    <main>

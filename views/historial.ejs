@@ -1,0 +1,40 @@
+<%- include('partials/header') %>
+<h1>Historial y reporte</h1>
+
+<form method="get" action="/historial" class="tarjeta en-linea">
+  <input name="cuenta" placeholder="Filtrar por número de cuenta (opcional)" value="<%= cuenta %>">
+  <button type="submit">Filtrar</button>
+  <% if (cuenta) { %><a href="/historial">Quitar filtro</a><% } %>
+</form>
+
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+
+<h2>Reporte</h2>
+<div class="resumen">
+  <div class="tarjeta"><span>Operaciones</span><strong><%= reporte.operaciones %></strong></div>
+  <div class="tarjeta"><span>Monto total</span><strong>$<%= reporte.monto_total.toLocaleString('es-MX') %></strong></div>
+  <% Object.entries(reporte.por_tipo).forEach(([tipo, r]) => { %>
+    <div class="tarjeta"><span><%= tipo %></span><strong><%= r.operaciones %> | $<%= r.monto.toLocaleString('es-MX') %></strong></div>
+  <% }) %>
+</div>
+
+<h2>Movimientos</h2>
+<% if (transacciones.length === 0) { %>
+  <p>No hay transacciones.</p>
+<% } else { %>
+  <table>
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Monto</th></tr></thead>
+    <tbody>
+      <% transacciones.forEach(t => { %>
+        <tr>
+          <td><%= new Date(t.created_at).toLocaleString('es-MX') %></td>
+          <td><span class="tipo <%= t.tipo %>"><%= t.tipo %></span></td>
+          <td><%= t.cuenta_origen || '—' %></td>
+          <td><%= t.cuenta_destino || '—' %></td>
+          <td>$<%= Number(t.monto).toLocaleString('es-MX') %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+<%- include('partials/footer') %>

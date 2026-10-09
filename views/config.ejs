@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<h1>Conexión con el Banco Central</h1>
+<p>La URL y la API Key se configuran en las variables de entorno del servidor (<code>.env</code> o Render). Aquí solo se muestran y se prueba la conexión.</p>
+
+<% if (mensaje) { %><p class="exito"><%= mensaje %></p><% } %>
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+
+<div class="tarjeta">
+  <p><strong>URL del Banco Central:</strong> <%= config.centralUrl || 'No configurada' %></p>
+  <p><strong>API Key:</strong> <%= llaveOculta %></p>
+  <form method="post" action="/config">
+    <button type="submit">Probar conexión</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

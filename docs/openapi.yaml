@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: Nodo 2 - Sucursal
+  version: 1.0.0
+  description: |
+    API del Servidor Administrativo de Sucursal. Cada operación se reenvía al Banco Central
+    enviando la API Key de la sucursal en el header X-API-KEY.
+    Si no hay URL o API Key configuradas, responde con datos de prueba.
+servers:
+  - url: /api
+tags:
+  - name: Estado
+  - name: Cuentas
+  - name: Transacciones
+paths:
+  /estado:
+    get:
+      tags: [Estado]
+      summary: Verifica la conexión con el Banco Central
+      responses:
+        '200':
+          description: Conectado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conectado: { type: boolean }
+                  modo_prueba: { type: boolean }
+                  nodo: { $ref: '#/components/schemas/Nodo' }
+        '503': { $ref: '#/components/responses/Error' }
+  /cuentas:
+    post:
+      tags: [Cuentas]
+      summary: Abre una cuenta nueva en el Banco Central
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CuentaNueva' }
+            example: { titular: Juan Pérez, saldo_inicial: 1000 }
+      responses:
+        '201':
+          description: Cuenta creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cuenta' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /cuentas/{numero}:
+    get:
+      tags: [Cuentas]
+      summary: Consulta una cuenta por número
+      parameters:
+        - in: path
+          name: numero
+          required: true
+          schema: { type: string }
+          example: '1001'
+      responses:
+        '200':
+          description: Datos de la cuenta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cuenta' }
+        '404': { $ref: '#/components/responses/Error' }
+  /transacciones:
+    get:
+      tags: [Transacciones]
+      summary: Historial de transacciones de la sucursal (opcionalmente por cuenta)
+      parameters:
+        - in: query
+          name: cuenta
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista de transacciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Transaccion' }
+  /reportes:
+    get:
+      tags: [Transacciones]
+      summary: Reporte de operaciones (totales por tipo)
+      parameters:
+        - in: query
+          name: cuenta
+          schema: { type: string }
+      responses:
+        '200':
+          description: Resumen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reporte' }
+components:
+  schemas:
+    Nodo:
+      type: object
+      properties:
+        nombre: { type: string }
+        tipo: { type: string, example: sucursal }
+        efectivo_disponible: { type: number }
+    CuentaNueva:
+      type: object
+      required: [titular, saldo_inicial]
+      properties:
+        titular: { type: string }
+        saldo_inicial: { type: number, minimum: 0 }
+    Cuenta:
+      type: object
+      properties:
+        numero_cuenta: { type: string, example: '1001' }
+        titular: { type: string }
+        saldo: { type: number, example: 1000 }
+        estado: { type: string, enum: [activa, bloqueada] }
+    Transaccion:
+      type: object
+      properties:
+        cuenta_origen: { type: string, nullable: true }
+        cuenta_destino: { type: string, nullable: true }
+        monto: { type: number }
+        tipo: { type: string, enum: [apertura, retiro, deposito, transferencia] }
+        created_at: { type: string, format: date-time }
+    Reporte:
+      type: object
+      properties:
+        operaciones: { type: integer }
+        monto_total: { type: number }
+        por_tipo:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              operaciones: { type: integer }
+              monto: { type: number }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }

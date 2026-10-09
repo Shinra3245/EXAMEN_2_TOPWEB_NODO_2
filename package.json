@@ -1,0 +1,17 @@
+{
+  "name": "nodo2-sucursal",
+  "version": "1.0.0",
+  "description": "Nodo 2 - Servidor Administrativo de Sucursal (Sistema Bancario Distribuido)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.6.1"
+  }
+}
