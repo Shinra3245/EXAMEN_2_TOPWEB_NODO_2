@@ -14,8 +14,8 @@ async function estado(req, res, next) {
 async function crearCuenta(req, res, next) {
   try {
     const headerKey = req.get('Idempotency-Key');
-    if (headerKey && req.body?.idempotency_key !== undefined && headerKey !== req.body.idempotency_key) return res.status(400).json({ error: 'La clave de idempotencia del header y del cuerpo deben coincidir' });
-    const body = headerKey && req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? { ...req.body, idempotency_key: headerKey } : req.body;
+    if (headerKey !== undefined && req.body?.idempotency_key !== undefined && headerKey !== req.body.idempotency_key) return res.status(400).json({ error: 'La clave de idempotencia del header y del cuerpo deben coincidir' });
+    const body = headerKey !== undefined && req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? { ...req.body, idempotency_key: headerKey } : req.body;
     const { datos, error } = validarCuentaNueva(body);
     if (error) return res.status(400).json({ error });
     const cuenta = await central.crearCuenta(datos);

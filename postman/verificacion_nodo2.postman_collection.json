@@ -1413,6 +1413,143 @@
           ]
         }
       ]
+    },
+    {
+      "name": "04 Revisión final sin nuevas cuentas",
+      "item": [
+        {
+          "name": "04 Clave vacía",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": ""
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo clave\", \"saldo_inicial\": 1000}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Comprobar versión primero',()=>{throw new Error('Ejecutar carpeta 00');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Clave con espacios",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "no valida"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo clave\", \"saldo_inicial\": 1000}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Comprobar versión primero',()=>{throw new Error('Ejecutar carpeta 00');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Reintento después de un nuevo despliegue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_reintento}}\", \"saldo_inicial\": 1000, \"idempotency_key\": \"{{reintento_key}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Misma cuenta y dinero intacto',()=>{const j=pm.response.json();pm.expect(j.numero_cuenta).to.eql(pm.environment.get('cuenta_reintento'));pm.expect(j.saldo).to.eql(1000);pm.expect(j.reintentada).to.eql(true);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

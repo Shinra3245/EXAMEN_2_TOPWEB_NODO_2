@@ -1,0 +1,14 @@
+{
+  "numero_cuenta": "17641824494642286453",
+  "saldo": 1000,
+  "apertura_ui": true,
+  "reintento_formulario_misma_cuenta": true,
+  "depositos": 1,
+  "formulario_invalido_http": 400,
+  "health": {
+    "status": "ok",
+    "service": "sucursal-nodo2",
+    "commit": "5a2230229ef6beca12bf33f048e124d30b2a6aa7",
+    "branch": "main"
+  }
+}

@@ -3,7 +3,7 @@ services:
     name: sucursal-nodo2
     runtime: node
     plan: free
-    branch: master
+    branch: main
     buildCommand: npm ci --ignore-scripts && npm test
     startCommand: npm start
     healthCheckPath: /healthz

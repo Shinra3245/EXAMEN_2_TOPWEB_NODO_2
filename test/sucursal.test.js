@@ -97,6 +97,13 @@ test('Idempotency-Key en header y discrepancia con cuerpo', async () => {
   assert.equal(first.status, 201); assert.equal(replay.status, 200); assert.equal(first.json().numero_cuenta, replay.json().numero_cuenta);
   assert.equal((await request('/api/cuentas', { ...b, idempotency_key: 'diferente' }, { 'Idempotency-Key': key })).status, 400);
 });
+test('Clave de idempotencia vacía o inválida: 400 sin apertura', async () => {
+  const b = { titular: 'Clave inválida', saldo_inicial: 1000 }, count = cuentas.size;
+  assert.equal((await request('/api/cuentas', b, { 'Idempotency-Key': '' })).status, 400);
+  assert.equal((await request('/api/cuentas', b, { 'Idempotency-Key': 'con espacios' })).status, 400);
+  assert.equal((await request('/api/cuentas', { ...b, idempotency_key: {} })).status, 400);
+  assert.equal(cuentas.size, count);
+});
 test('Aperturas simultáneas con misma clave crean una sola cuenta', async () => {
   const b = { titular: 'Simultáneo', saldo_inicial: 1000, idempotency_key: randomUUID() };
   const results = await Promise.all([request('/api/cuentas', b), request('/api/cuentas', b)]);
@@ -183,4 +190,28 @@ test('Contrato OpenAPI documenta reintentos, errores y validación', () => {
   for (const status of ['200','201','400','409','422','503']) assert.ok(opening.responses[status]);
   assert.equal(doc.components.schemas.CuentaNueva.properties.saldo_inicial.multipleOf, 0.01);
   assert.ok(doc.paths['/healthz'].get);
+});
+test('El reintento recupera la misma cuenta después de reiniciar el proceso', async () => {
+  const { spawn } = require('node:child_process');
+  const { once } = require('node:events');
+  async function worker() {
+    const child = spawn(process.execPath, ['-e', "const server=require('./app').createApp().listen(0,'127.0.0.1',()=>process.send({port:server.address().port}));"], {
+      cwd: require('node:path').join(__dirname, '..'), env: { ...process.env }, stdio: ['ignore','ignore','pipe','ipc']
+    });
+    const ready = await new Promise((resolve, reject) => {
+      child.once('message', resolve); child.once('error', reject);
+      child.once('exit', code => reject(new Error(`El proceso terminó antes de iniciar: ${code}`)));
+    });
+    return { url: `http://127.0.0.1:${ready.port}`, async stop() { const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited; } };
+  }
+  const body = { titular: 'Reinicio real', saldo_inicial: 1000, idempotency_key: randomUUID() };
+  const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  let numero;
+  const first = await worker();
+  try { const r = await fetch(first.url + '/api/cuentas', options); assert.equal(r.status, 201); numero = (await r.json()).numero_cuenta; }
+  finally { await first.stop(); }
+  const restarted = await worker();
+  try { const r = await fetch(restarted.url + '/api/cuentas', options); assert.equal(r.status, 200); assert.equal((await r.json()).numero_cuenta, numero); }
+  finally { await restarted.stop(); }
+  assert.equal(movimientos.filter(t => t.cuenta_destino === numero).length, 1);
 });

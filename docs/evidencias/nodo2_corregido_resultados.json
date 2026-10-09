@@ -1,0 +1,508 @@
+{
+  "fecha_utc": "2026-10-09T23:37:25.047000+00:00",
+  "commit_probado": "5a2230229ef6beca12bf33f048e124d30b2a6aa7",
+  "solicitudes": 35,
+  "aserciones": 71,
+  "fallos": 0,
+  "cuentas_demostracion": {
+    "cuenta_prueba": "06854956898678223005",
+    "cuenta_cero": "02540112422524223379",
+    "cuenta_reintento": "05241774170719200958"
+  },
+  "resultados": [
+    {
+      "solicitud": "00.0 Versión y proceso corregido",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Proceso activo y versión esperada",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "00.1 Conexión real",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Conectado sin simulación",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sucursal",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "00.2 Cuenta inexistente",
+      "http": 404,
+      "aserciones": [
+        {
+          "nombre": "HTTP 404",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "00.3 Historial vacío",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sin operaciones",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "00.4 Reporte vacío",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Totales cero",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.1 Abrir cuenta de prueba con $1,000",
+      "http": 201,
+      "aserciones": [
+        {
+          "nombre": "HTTP 201",
+          "aprobada": true
+        },
+        {
+          "nombre": "Cuenta real y saldo inicial",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.2 Confirmar cuenta en Banco Central",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Cuenta y dinero coinciden en Central",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.3 Consultar desde Sucursal",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sucursal muestra saldo central",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.4 Historial de la cuenta en Sucursal",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Un depósito de apertura",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.5 Verificar historial contra Central",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Misma apertura en ledger central",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.6 Reporte de la apertura",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Reporte suma correctamente",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.7 Apertura válida con saldo cero",
+      "http": 201,
+      "aserciones": [
+        {
+          "nombre": "HTTP 201",
+          "aprobada": true
+        },
+        {
+          "nombre": "Saldo cero aceptado",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.8 Cuenta cero existe en Central",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sin saldo fabricado",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "01.9 Cuenta cero sin depósito ficticio",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sin movimiento de dinero",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Sin titular",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Titular vacío",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo negativo",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo no numérico",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Sin saldo",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Más de dos decimales",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Nombre mayor a 255 caracteres",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Error JSON legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Titular numérico",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Titular objeto",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Titular array",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo nulo",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo vacío",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo booleano",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo array",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "02 Saldo string en API JSON",
+      "http": 400,
+      "aserciones": [
+        {
+          "nombre": "HTTP 400",
+          "aprobada": true
+        },
+        {
+          "nombre": "Rechazo seguro con error legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.1 Nueva apertura protegida",
+      "http": 201,
+      "aserciones": [
+        {
+          "nombre": "HTTP 201",
+          "aprobada": true
+        },
+        {
+          "nombre": "Apertura nueva",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.2 Repetir sin duplicar",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Misma cuenta y dinero intacto",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.3 Cambiar datos con la misma clave",
+      "http": 409,
+      "aserciones": [
+        {
+          "nombre": "HTTP 409",
+          "aprobada": true
+        },
+        {
+          "nombre": "Conflicto legible",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.4 Un solo depósito en historial local",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Sin doble depósito",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.5 Confirmar saldo central",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Saldo confirmado en Central",
+          "aprobada": true
+        }
+      ]
+    },
+    {
+      "solicitud": "03.6 Ledger central sin duplicados",
+      "http": 200,
+      "aserciones": [
+        {
+          "nombre": "HTTP 200",
+          "aprobada": true
+        },
+        {
+          "nombre": "Solo una apertura central",
+          "aprobada": true
+        }
+      ]
+    }
+  ]
+}

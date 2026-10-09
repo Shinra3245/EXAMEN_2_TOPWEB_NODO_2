@@ -58,7 +58,7 @@ Render (Web Service), conservando el servicio `sucursal-nodo2` existente.
 
 Configuración recomendada: Node 24.16.0, build `npm ci --ignore-scripts && npm test`, start `npm start`, health check `/healthz` y **Auto-Deploy: On Commit**. `render.yaml` declara estos valores para un Blueprint; añadirlo al repositorio no modifica automáticamente un servicio creado manualmente. No crear otro servicio para reemplazar el existente. Conservar sus variables de entorno y aplicar estos valores en su panel si todavía no los tiene.
 
-El repositorio tiene `master` y `main`. Conectar Render a la rama que utilice el servicio; el Blueprint propone `master`, que es la rama predeterminada. `/healthz` devuelve el commit y la rama desplegados cuando Render proporciona sus variables. Un push seguido por ese commit publicado permite comprobar el despliegue continuo.
+El servicio publicado usa la rama `main`; el Blueprint también declara `main`. `/healthz` devuelve el commit y la rama desplegados cuando Render proporciona sus variables. Un push seguido por ese commit publicado permite comprobar el despliegue continuo. Para continuar desde una copia anterior en `master`, cambiar a `main` y descargar los cambios; conservar primero cualquier trabajo local sin guardar.
 
 ## Pruebas y reintentos
 
