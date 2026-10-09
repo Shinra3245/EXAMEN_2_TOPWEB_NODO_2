@@ -4,7 +4,9 @@ const config = {
 };
 
 function usarDatosFalsos() {
-  return !config.centralUrl || !config.apiKey;
+  const incompleto = !config.centralUrl || !config.apiKey;
+  if (incompleto && process.env.NODE_ENV === 'production') throw Object.assign(new Error('Configurar BANCO_CENTRAL_URL y BANCO_CENTRAL_API_KEY en el servidor'), { status: 503 });
+  return incompleto;
 }
 
 module.exports = { config, usarDatosFalsos };

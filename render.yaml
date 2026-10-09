@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sucursal-nodo2
+    runtime: node
+    plan: free
+    branch: master
+    buildCommand: npm ci --ignore-scripts && npm test
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 24.16.0
+      - key: NODE_ENV
+        value: production
+      - key: BANCO_CENTRAL_URL
+        value: https://banco-central-nodo1.onrender.com/api
+      - key: BANCO_CENTRAL_API_KEY
+        sync: false

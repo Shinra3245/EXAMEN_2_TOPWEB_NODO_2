@@ -4,6 +4,7 @@
 const cuentas = [];
 const transacciones = [];
 let siguienteNumero = 1001;
+const aperturas = new Map();
 
 function error(status, mensaje) {
   const e = new Error(mensaje);
@@ -15,7 +16,12 @@ function getNodo() {
   return { nombre: 'Sucursal (modo prueba)', tipo: 'sucursal', efectivo_disponible: 100000 };
 }
 
-function crearCuenta({ titular, saldo_inicial }) {
+function crearCuenta({ titular, saldo_inicial, idempotency_key }) {
+  const previa = aperturas.get(idempotency_key);
+  if (previa) {
+    if (previa.titular !== titular || previa.saldo_inicial !== saldo_inicial) throw error(409, 'La clave de idempotencia ya se utilizó con otros datos');
+    return { ...previa.cuenta, reintentada: true };
+  }
   const cuenta = {
     numero_cuenta: String(siguienteNumero++),
     titular,
@@ -24,15 +30,16 @@ function crearCuenta({ titular, saldo_inicial }) {
     created_at: new Date().toISOString()
   };
   cuentas.push(cuenta);
-  transacciones.push({
+  if (cuenta.saldo > 0) transacciones.push({
     id: transacciones.length + 1,
     cuenta_origen: null,
     cuenta_destino: cuenta.numero_cuenta,
     monto: cuenta.saldo,
-    tipo: 'apertura',
+    tipo: 'deposito',
     created_at: cuenta.created_at
   });
-  return cuenta;
+  aperturas.set(idempotency_key, { titular, saldo_inicial, cuenta });
+  return { ...cuenta, reintentada: false };
 }
 
 function getCuenta(numero) {

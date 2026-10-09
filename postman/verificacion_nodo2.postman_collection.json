@@ -1,0 +1,1418 @@
+{
+  "info": {
+    "_postman_id": "94c485a2-873a-4f37-a6a5-dfe6fb634141",
+    "name": "Examen — Verificación Nodo 2",
+    "description": "Verificación de Nodo 2 corregido. La carpeta 01 crea dos cuentas de demostración y la 03 una tercera. No ejecuta operaciones del ATM. Ejecutar colección completa para comprobar la versión antes de los casos que antes provocaban errores.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 Conexión y lecturas",
+      "item": [
+        {
+          "name": "00.0 Versión y proceso corregido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/healthz"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('servidor_corregido','false');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('Proceso activo y versión esperada',()=>{pm.expect(j.status).to.eql('ok');pm.expect(j.service).to.eql('sucursal-nodo2');if(pm.environment.get('expected_commit'))pm.expect(j.commit).to.eql(pm.environment.get('expected_commit'));});",
+                  "pm.environment.set('servidor_corregido',String(pm.response.code===200&&j.service==='sucursal-nodo2'&&(!pm.environment.get('expected_commit')||j.commit===pm.environment.get('expected_commit'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.1 Conexión real",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/estado"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('Conectado sin simulación',()=>{pm.expect(j.conectado).to.eql(true);pm.expect(j.modo_prueba).to.eql(false);});",
+                  "pm.test('Sucursal',()=>pm.expect(j.nodo.tipo).to.eql('sucursal'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 Cuenta inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas/auditoria-inexistente-20261009"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error legible',()=>pm.expect(pm.response.json().error).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 Historial vacío",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/transacciones?cuenta=auditoria-inexistente-20261009"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin operaciones',()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 Reporte vacío",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/reportes?cuenta=auditoria-inexistente-20261009"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Totales cero',()=>{const j=pm.response.json();pm.expect(j.operaciones).to.eql(0);pm.expect(j.monto_total).to.eql(0);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Aperturas reales y consistencia",
+      "item": [
+        {
+          "name": "01.1 Abrir cuenta de prueba con $1,000",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_prueba}}\", \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('permitir_aperturas') !== 'true' || !pm.environment.get('sucursal_api_key')) { pm.test('Preparación: autorizar aperturas y configurar clave',()=>{throw new Error('Completar entorno antes de ejecutar');}); pm.execution.skipRequest(); }",
+                  "const id=Date.now()+'-'+pm.variables.replaceIn('{{$randomUUID}}').slice(0,8);pm.environment.set('titular_prueba','Auditoria Nodo2 API '+id);pm.environment.unset('cuenta_prueba');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const j=pm.response.json();",
+                  "pm.test('Cuenta real y saldo inicial',()=>{pm.expect(j.numero_cuenta).to.be.a('string').and.not.empty;pm.expect(j.titular).to.eql(pm.environment.get('titular_prueba'));pm.expect(j.saldo).to.eql(1000);pm.expect(j.estado).to.eql('activa');});",
+                  "if(pm.response.code===201&&j.numero_cuenta)pm.environment.set('cuenta_prueba',j.numero_cuenta);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 Confirmar cuenta en Banco Central",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-KEY",
+                "value": "{{sucursal_api_key}}"
+              }
+            ],
+            "url": "{{central_url}}/api/accounts/{{cuenta_prueba}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_prueba')){pm.test('Apertura previa requerida',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cuenta y dinero coinciden en Central',()=>{const j=pm.response.json();pm.expect(j.numero_cuenta).to.eql(pm.environment.get('cuenta_prueba'));pm.expect(j.nombre_titular).to.eql(pm.environment.get('titular_prueba'));pm.expect(Number(j.saldo_global)).to.eql(1000);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 Consultar desde Sucursal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas/{{cuenta_prueba}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_prueba')){pm.test('Apertura previa requerida',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sucursal muestra saldo central',()=>{const j=pm.response.json();pm.expect(j.numero_cuenta).to.eql(pm.environment.get('cuenta_prueba'));pm.expect(j.saldo).to.eql(1000);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 Historial de la cuenta en Sucursal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/transacciones?cuenta={{cuenta_prueba}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_prueba')){pm.test('Apertura previa requerida',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Un depósito de apertura',()=>{const j=pm.response.json();pm.expect(j).to.have.lengthOf(1);pm.expect(j[0].tipo).to.eql('deposito');pm.expect(j[0].monto).to.eql(1000);pm.expect(j[0].cuenta_destino).to.eql(pm.environment.get('cuenta_prueba'));});",
+                  "pm.environment.set('historial_apertura',JSON.stringify(pm.response.json()));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 Verificar historial contra Central",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-KEY",
+                "value": "{{sucursal_api_key}}"
+              }
+            ],
+            "url": "{{central_url}}/api/transactions?cuenta={{cuenta_prueba}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_prueba')){pm.test('Apertura previa requerida',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Misma apertura en ledger central',()=>{const j=pm.response.json().data;const s=JSON.parse(pm.environment.get('historial_apertura'));pm.expect(j).to.have.lengthOf(1);pm.expect(j[0].tipo).to.eql(s[0].tipo);pm.expect(Number(j[0].monto)).to.eql(s[0].monto);pm.expect(j[0].cuenta_destino).to.eql(s[0].cuenta_destino);pm.expect(j[0].created_at).to.eql(s[0].created_at);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 Reporte de la apertura",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/reportes?cuenta={{cuenta_prueba}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_prueba')){pm.test('Apertura previa requerida',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Reporte suma correctamente',()=>{const j=pm.response.json();pm.expect(j.operaciones).to.eql(1);pm.expect(j.monto_total).to.eql(1000);pm.expect(j.por_tipo.deposito).to.eql({operaciones:1,monto:1000});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.7 Apertura válida con saldo cero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_cero}}\", \"saldo_inicial\": 0}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('permitir_aperturas') !== 'true') {pm.test('Aperturas autorizadas',()=>{throw new Error('Activar permitir_aperturas');});pm.execution.skipRequest();}",
+                  "pm.environment.set('titular_cero','Auditoria Nodo2 Cero '+Date.now());pm.environment.unset('cuenta_cero');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Saldo cero aceptado',()=>{const j=pm.response.json();pm.expect(j.saldo).to.eql(0);pm.expect(j.estado).to.eql('activa');});",
+                  "if(pm.response.code===201)pm.environment.set('cuenta_cero',pm.response.json().numero_cuenta);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.8 Cuenta cero existe en Central",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-KEY",
+                "value": "{{sucursal_api_key}}"
+              }
+            ],
+            "url": "{{central_url}}/api/accounts/{{cuenta_cero}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_cero'))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin saldo fabricado',()=>pm.expect(Number(pm.response.json().saldo_global)).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.9 Cuenta cero sin depósito ficticio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/transacciones?cuenta={{cuenta_cero}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get('cuenta_cero'))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin movimiento de dinero',()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Rechazos seguros",
+      "item": [
+        {
+          "name": "02 Sin titular",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Titular vacío",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"   \", \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo negativo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": -1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo no numérico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": \"abc\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Sin saldo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Más de dos decimales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": 1.001}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Nombre mayor a 255 caracteres",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Error JSON legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Titular numérico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": 123, \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Titular objeto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": {}, \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Titular array",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": [\"Auditoria\"], \"saldo_inicial\": 1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo nulo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo vacío",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": \"\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo booleano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": false}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo array",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": []}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Saldo string en API JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"Auditoria rechazo\", \"saldo_inicial\": \"1000\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo seguro con error legible',()=>pm.expect(pm.response.json().error).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Reintentos sin doble apertura",
+      "item": [
+        {
+          "name": "03.1 Nueva apertura protegida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_reintento}}\", \"saldo_inicial\": 1000, \"idempotency_key\": \"{{reintento_key}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(pm.environment.get('permitir_aperturas')!=='true'||!pm.environment.get('sucursal_api_key')){pm.test('Preparar aperturas',()=>{throw new Error('Configurar entorno');});pm.execution.skipRequest();}",
+                  "const id=pm.variables.replaceIn('{{$randomUUID}}');pm.environment.set('reintento_key',id);pm.environment.set('titular_reintento','Auditoria Nodo2 Reintento '+id);pm.environment.unset('cuenta_reintento');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+                  "const j=pm.response.json();pm.test('Apertura nueva',()=>{pm.expect(j.saldo).to.eql(1000);pm.expect(j.reintentada).to.eql(false);});if(pm.response.code===201)pm.environment.set('cuenta_reintento',j.numero_cuenta);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 Repetir sin duplicar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_reintento}}\", \"saldo_inicial\": 1000, \"idempotency_key\": \"{{reintento_key}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Misma cuenta y dinero intacto',()=>{const j=pm.response.json();pm.expect(j.numero_cuenta).to.eql(pm.environment.get('cuenta_reintento'));pm.expect(j.saldo).to.eql(1000);pm.expect(j.reintentada).to.eql(true);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 Cambiar datos con la misma clave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/cuentas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titular\": \"{{titular_reintento}}\", \"saldo_inicial\": 1001, \"idempotency_key\": \"{{reintento_key}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409',()=>pm.response.to.have.status(409));",
+                  "pm.test('Conflicto legible',()=>pm.expect(pm.response.json().error).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 Un solo depósito en historial local",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{sucursal_url}}/api/transacciones?cuenta={{cuenta_reintento}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Sin doble depósito',()=>{const j=pm.response.json();pm.expect(j).to.have.lengthOf(1);pm.expect(j[0].monto).to.eql(1000);pm.expect(j[0].cuenta_destino).to.eql(pm.environment.get('cuenta_reintento'));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.5 Confirmar saldo central",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-KEY",
+                "value": "{{sucursal_api_key}}"
+              }
+            ],
+            "url": "{{central_url}}/api/accounts/{{cuenta_reintento}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Saldo confirmado en Central',()=>pm.expect(Number(pm.response.json().saldo_global)).to.eql(1000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.6 Ledger central sin duplicados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-KEY",
+                "value": "{{sucursal_api_key}}"
+              }
+            ],
+            "url": "{{central_url}}/api/transactions?cuenta={{cuenta_reintento}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('servidor_corregido')!=='true'){pm.test('Verificar versión corregida primero',()=>{throw new Error('Ejecutar colección completa o carpeta 00 antes de los casos de regresión');});pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cuenta_reintento')){pm.test('Apertura protegida previa',()=>{throw new Error('Ejecutar carpeta completa');});pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Solo una apertura central',()=>{const j=pm.response.json().data;pm.expect(j).to.have.lengthOf(1);pm.expect(Number(j[0].monto)).to.eql(1000);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

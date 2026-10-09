@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
   title: Nodo 2 - Sucursal
-  version: 1.0.0
-  description: |
-    API del Servidor Administrativo de Sucursal. Cada operación se reenvía al Banco Central
-    enviando la API Key de la sucursal en el header X-API-KEY.
-    Si no hay URL o API Key configuradas, responde con datos de prueba.
+  version: 1.1.0
+  description: API de Sucursal. El servidor consume el Banco Central con
+    X-API-KEY. Sin configuración usa datos simulados solo en local; en
+    producción devuelve 503. El historial contiene las operaciones procesadas
+    por esta sucursal.
 servers:
   - url: /api
 tags:
@@ -15,126 +15,272 @@ tags:
 paths:
   /estado:
     get:
-      tags: [Estado]
+      tags:
+        - Estado
       summary: Verifica la conexión con el Banco Central
       responses:
-        '200':
+        "200":
           description: Conectado
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  conectado: { type: boolean }
-                  modo_prueba: { type: boolean }
-                  nodo: { $ref: '#/components/schemas/Nodo' }
-        '503': { $ref: '#/components/responses/Error' }
+                  conectado:
+                    type: boolean
+                  modo_prueba:
+                    type: boolean
+                  nodo:
+                    $ref: "#/components/schemas/Nodo"
+        "401": &a1
+          $ref: "#/components/responses/Error"
+        "404": *a1
+        "500": *a1
+        "502": *a1
+        "503": *a1
   /cuentas:
     post:
-      tags: [Cuentas]
+      tags:
+        - Cuentas
       summary: Abre una cuenta nueva en el Banco Central
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CuentaNueva' }
-            example: { titular: Juan Pérez, saldo_inicial: 1000 }
+            schema:
+              $ref: "#/components/schemas/CuentaNueva"
+            example:
+              titular: Juan Pérez
+              saldo_inicial: 1000
+              idempotency_key: apertura-cliente-001
       responses:
-        '201':
+        "200":
+          description: Apertura ya confirmada; se recupera la misma cuenta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cuenta"
+        "201":
           description: Cuenta creada
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Cuenta' }
-        '400': { $ref: '#/components/responses/Error' }
-        '401': { $ref: '#/components/responses/Error' }
+              schema:
+                $ref: "#/components/schemas/Cuenta"
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "422": *a1
+        "500": *a1
+        "502": *a1
+        "503": *a1
+      description: Usar la misma clave por intento. Una apertura nueva devuelve 201;
+        un reintento devuelve 200 y la misma cuenta con su saldo actual.
+        Reutilizar la clave con otros datos devuelve 409. Si se omite, cada
+        llamada representa una apertura nueva.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: ^[a-zA-Z0-9._:-]+$
+          description: Alternativa a idempotency_key en el JSON. Si se envían ambas deben
+            coincidir.
   /cuentas/{numero}:
     get:
-      tags: [Cuentas]
+      tags:
+        - Cuentas
       summary: Consulta una cuenta por número
       parameters:
         - in: path
           name: numero
           required: true
-          schema: { type: string }
-          example: '1001'
+          schema:
+            type: string
+          example: "1001"
       responses:
-        '200':
+        "200":
           description: Datos de la cuenta
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Cuenta' }
-        '404': { $ref: '#/components/responses/Error' }
+              schema:
+                $ref: "#/components/schemas/Cuenta"
+        "401": *a1
+        "404": *a1
+        "500": *a1
+        "502": *a1
+        "503": *a1
   /transacciones:
     get:
-      tags: [Transacciones]
+      tags:
+        - Transacciones
       summary: Historial de transacciones de la sucursal (opcionalmente por cuenta)
       parameters:
         - in: query
           name: cuenta
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        '200':
+        "200":
           description: Lista de transacciones
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Transaccion' }
+                items:
+                  $ref: "#/components/schemas/Transaccion"
+        "400": *a1
+        "401": *a1
+        "500": *a1
+        "501": *a1
+        "502": *a1
+        "503": *a1
   /reportes:
     get:
-      tags: [Transacciones]
+      tags:
+        - Transacciones
       summary: Reporte de operaciones (totales por tipo)
       parameters:
         - in: query
           name: cuenta
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        '200':
+        "200":
           description: Resumen
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Reporte' }
+              schema:
+                $ref: "#/components/schemas/Reporte"
+        "400": *a1
+        "401": *a1
+        "500": *a1
+        "501": *a1
+        "502": *a1
+        "503": *a1
+  /healthz:
+    servers:
+      - url: /
+    get:
+      tags:
+        - Estado
+      summary: Salud del proceso y versión publicada
+      description: No comprueba la conexión al Banco Central; usar /api/estado para
+        esa comprobación.
+      responses:
+        "200":
+          description: Proceso activo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  service:
+                    type: string
+                    example: sucursal-nodo2
+                  commit:
+                    type: string
+                    nullable: true
+                  branch:
+                    type: string
+                    nullable: true
 components:
   schemas:
     Nodo:
       type: object
       properties:
-        nombre: { type: string }
-        tipo: { type: string, example: sucursal }
-        efectivo_disponible: { type: number }
+        nombre:
+          type: string
+        tipo:
+          type: string
+          example: sucursal
+        efectivo_disponible:
+          type: number
     CuentaNueva:
       type: object
-      required: [titular, saldo_inicial]
+      required:
+        - titular
+        - saldo_inicial
       properties:
-        titular: { type: string }
-        saldo_inicial: { type: number, minimum: 0 }
+        titular:
+          type: string
+          minLength: 1
+          maxLength: 255
+        saldo_inicial:
+          type: number
+          minimum: 0
+          maximum: 9999999999999.99
+          multipleOf: 0.01
+        idempotency_key:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: ^[a-zA-Z0-9._:-]+$
+          description: Conservar durante todo reintento; una operación nueva necesita otra
+            clave.
     Cuenta:
       type: object
       properties:
-        numero_cuenta: { type: string, example: '1001' }
-        titular: { type: string }
-        saldo: { type: number, example: 1000 }
-        estado: { type: string, enum: [activa, bloqueada] }
+        numero_cuenta:
+          type: string
+          example: "1001"
+        titular:
+          type: string
+        saldo:
+          type: number
+          example: 1000
+        estado:
+          type: string
+          enum:
+            - activa
+            - bloqueada
+        reintentada:
+          type: boolean
+          description: Presente en la respuesta de apertura. true si se recuperó un
+            intento ya confirmado.
     Transaccion:
       type: object
       properties:
-        cuenta_origen: { type: string, nullable: true }
-        cuenta_destino: { type: string, nullable: true }
-        monto: { type: number }
-        tipo: { type: string, enum: [apertura, retiro, deposito, transferencia] }
-        created_at: { type: string, format: date-time }
+        cuenta_origen:
+          type: string
+          nullable: true
+        cuenta_destino:
+          type: string
+          nullable: true
+        monto:
+          type: number
+        tipo:
+          type: string
+          enum:
+            - retiro
+            - deposito
+            - transferencia
+        created_at:
+          type: string
+          format: date-time
     Reporte:
       type: object
       properties:
-        operaciones: { type: integer }
-        monto_total: { type: number }
+        operaciones:
+          type: integer
+        monto_total:
+          type: number
         por_tipo:
           type: object
           additionalProperties:
             type: object
             properties:
-              operaciones: { type: integer }
-              monto: { type: number }
+              operaciones:
+                type: integer
+              monto:
+                type: number
   responses:
     Error:
       description: Error
@@ -143,4 +289,5 @@ components:
           schema:
             type: object
             properties:
-              error: { type: string }
+              error:
+                type: string

@@ -59,28 +59,36 @@ function adaptarCuenta(c) {
   };
 }
 
-// El Banco Central todavía no tiene GET /node.
-// Se prueba la conexión consultando una cuenta inexistente:
-// 404 = la API Key es válida, 401 = la API Key es inválida.
+// Exige una respuesta válida de una ruta protegida, sin aceptar un 404 genérico.
 async function getNodo() {
   if (usarDatosFalsos()) return mock.getNodo();
-  try {
-    await llamar('GET', '/accounts/prueba-conexion');
-  } catch (e) {
-    if (e.status !== 404) throw e;
-  }
+  const datos = await llamar('GET', '/transactions?page=1');
+  if (!Array.isArray(datos) && !Array.isArray(datos?.data)) throw error(502, 'Respuesta de conexión inválida del Banco Central');
   return { nombre: 'Sucursal (API Key válida)', tipo: 'sucursal' };
 }
 
-async function crearCuenta({ titular, saldo_inicial }) {
-  if (usarDatosFalsos()) return mock.crearCuenta({ titular, saldo_inicial });
-  const datos = await llamar('POST', '/accounts', {
-    numero_cuenta: String(Date.now()).slice(-10),
-    nombre_titular: titular,
-    saldo_inicial,
-    idempotency_key: crypto.randomUUID()
-  });
-  return adaptarCuenta(datos.account);
+async function crearCuenta({ titular, saldo_inicial, idempotency_key = crypto.randomUUID() }) {
+  if (usarDatosFalsos()) return mock.crearCuenta({ titular, saldo_inicial, idempotency_key });
+  // La identidad del intento se conserva incluso si Render reinicia el proceso.
+  // El Central mantiene la cuenta y el depósito; no se usa una caché en memoria.
+  const sucursal = crypto.createHash('sha256').update(config.apiKey).digest('hex').slice(0, 16);
+  const claveCentral = `sucursal:${sucursal}:${idempotency_key}`;
+  const digest = crypto.createHash('sha256').update(claveCentral).digest('hex').slice(0, 16);
+  const numero = BigInt(`0x${digest}`).toString().padStart(20, '0');
+  try {
+    const datos = await llamar('POST', '/accounts', { numero_cuenta: numero, nombre_titular: titular, saldo_inicial, idempotency_key: claveCentral });
+    return { ...adaptarCuenta(datos.account), reintentada: false };
+  } catch (original) {
+    if (![422, 500, 503].includes(original.status)) throw original;
+    let cuenta;
+    try { cuenta = await getCuenta(numero); }
+    catch { throw original; }
+    const movimientos = await transaccionesCentrales(numero);
+    const apertura = movimientos.find(t => t.idempotency_key === claveCentral && t.tipo === 'deposito' && t.cuenta_destino === numero);
+    const saldoOriginal = apertura ? Number(apertura.monto) : 0;
+    if (cuenta.titular !== titular || saldoOriginal !== saldo_inicial) throw error(409, 'La clave de idempotencia ya se utilizó con otros datos');
+    return { ...cuenta, reintentada: true };
+  }
 }
 
 async function getCuenta(numero) {
@@ -99,28 +107,37 @@ function adaptarTransaccion(t) {
   };
 }
 
-// El Banco Central responde paginado (Laravel paginate): se recorren todas las páginas.
-async function getTransacciones(cuenta) {
-  if (usarDatosFalsos()) return mock.getTransacciones(cuenta);
+async function transaccionesCentrales(cuenta) {
   const todas = [];
   let pagina = 1;
+  while (true) {
+    const params = new URLSearchParams({ page: pagina });
+    if (cuenta) params.set('cuenta', cuenta);
+    const datos = await llamar('GET', `/transactions?${params}`);
+    const lista = Array.isArray(datos) ? datos : datos?.data;
+    if (!Array.isArray(lista)) throw error(502, 'Historial inválido del Banco Central');
+    todas.push(...lista);
+    if (Array.isArray(datos) || !datos.next_page_url) break;
+    let siguiente;
+    try { siguiente = Number(new URL(datos.next_page_url, config.centralUrl).searchParams.get('page')); }
+    catch { throw error(502, 'Paginación inválida del Banco Central'); }
+    if (!Number.isSafeInteger(siguiente) || siguiente !== pagina + 1 || (datos.last_page && siguiente > datos.last_page)) throw error(502, 'Paginación inválida del Banco Central');
+    pagina = siguiente;
+  }
+  return todas;
+}
+
+// El reporte solo se calcula después de obtener el historial completo.
+async function getTransacciones(cuenta) {
+  if (usarDatosFalsos()) return mock.getTransacciones(cuenta);
   try {
-    while (pagina <= 20) {
-      const params = new URLSearchParams({ page: pagina });
-      if (cuenta) params.set('cuenta', cuenta);
-      const datos = await llamar('GET', `/transactions?${params}`);
-      const lista = Array.isArray(datos) ? datos : (datos.data || []);
-      todas.push(...lista.map(adaptarTransaccion));
-      if (Array.isArray(datos) || !datos.next_page_url) break;
-      pagina++;
-    }
+    return (await transaccionesCentrales(cuenta)).map(adaptarTransaccion);
   } catch (e) {
     if (e.status === 404 || e.status === 405) {
       throw error(501, 'El Banco Central todavía no tiene la ruta de historial (GET /transactions).');
     }
     throw e;
   }
-  return todas;
 }
 
 module.exports = { getNodo, crearCuenta, getCuenta, getTransacciones };

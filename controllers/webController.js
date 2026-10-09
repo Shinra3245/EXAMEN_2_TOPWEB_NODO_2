@@ -1,6 +1,15 @@
 const central = require('../services/centralApi');
 const { config, usarDatosFalsos } = require('../services/config');
 const { validarCuentaNueva, resumen } = require('../services/reportes');
+const { randomUUID } = require('crypto');
+
+function valoresFormulario(body = {}) {
+  return {
+    titular: typeof body?.titular === 'string' ? body.titular : '',
+    saldo_inicial: typeof body?.saldo_inicial === 'string' ? body.saldo_inicial : '',
+    idempotency_key: typeof body?.idempotency_key === 'string' ? body.idempotency_key : randomUUID()
+  };
+}
 
 async function inicio(req, res) {
   let nodo = null;
@@ -37,23 +46,22 @@ async function probarConexion(req, res) {
 }
 
 function formNuevaCuenta(req, res) {
-  res.render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error: null, valores: {}, modoPrueba: usarDatosFalsos() });
+  res.render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error: null, valores: { idempotency_key: randomUUID() }, modoPrueba: usarDatosFalsos() });
 }
 
 async function crearCuenta(req, res) {
-  const { datos, error } = validarCuentaNueva(req.body);
-  if (error) {
-    return res.status(400).render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error, valores: req.body, modoPrueba: usarDatosFalsos() });
-  }
   try {
+    const { datos, error } = validarCuentaNueva(req.body, { formulario: true });
+    if (error) return res.status(400).render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error, valores: valoresFormulario(req.body), modoPrueba: usarDatosFalsos() });
     const cuenta = await central.crearCuenta(datos);
-    res.render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta, error: null, valores: {}, modoPrueba: usarDatosFalsos() });
+    res.render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta, error: null, valores: { idempotency_key: randomUUID() }, modoPrueba: usarDatosFalsos() });
   } catch (e) {
-    res.status(e.status || 500).render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error: e.message, valores: req.body, modoPrueba: usarDatosFalsos() });
+    res.status(e.status || 500).render('nueva-cuenta', { titulo: 'Nueva cuenta', cuenta: null, error: e.message, valores: valoresFormulario(req.body), modoPrueba: usarDatosFalsos() });
   }
 }
 
 async function buscarCuenta(req, res) {
+  if (req.query.numero !== undefined && typeof req.query.numero !== 'string') return res.status(400).render('error', { titulo: 'Error', mensaje: 'El número de cuenta debe ser un texto', status: 400 });
   const numero = (req.query.numero || '').trim();
   let cuenta = null;
   let error = null;
@@ -68,6 +76,7 @@ async function buscarCuenta(req, res) {
 }
 
 async function historial(req, res) {
+  if (req.query.cuenta !== undefined && typeof req.query.cuenta !== 'string') return res.status(400).render('error', { titulo: 'Error', mensaje: 'El filtro cuenta debe ser un texto', status: 400 });
   const cuenta = (req.query.cuenta || '').trim();
   let transacciones = [];
   let error = null;

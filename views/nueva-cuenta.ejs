@@ -12,11 +12,12 @@
 <% } %>
 
 <form method="post" action="/cuentas" class="tarjeta">
+  <input type="hidden" name="idempotency_key" value="<%= valores.idempotency_key %>">
   <label>Nombre del titular
-    <input name="titular" required value="<%= valores.titular || '' %>">
+    <input name="titular" required maxlength="255" value="<%= valores.titular || '' %>">
   </label>
   <label>Saldo inicial
-    <input name="saldo_inicial" type="number" min="0" step="0.01" required value="<%= valores.saldo_inicial || '1000' %>">
+    <input name="saldo_inicial" type="number" min="0" step="0.01" required value="<%= valores.saldo_inicial ?? '1000' %>">
   </label>
   <button type="submit">Crear cuenta</button>
 </form>
