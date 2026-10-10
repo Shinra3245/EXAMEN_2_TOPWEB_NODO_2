@@ -1,40 +1,54 @@
 <%- include('partials/header') %>
-<h1>Historial y reporte</h1>
+<h1><%= alcance === 'cuenta' ? 'Historial completo de la cuenta' : 'Historial local de la sucursal' %></h1>
+<p><%= alcance === 'cuenta' ? 'Incluye los movimientos de esta cuenta realizados en la sucursal y los cajeros.' : 'Incluye únicamente las operaciones procesadas por esta sucursal.' %></p>
 
 <form method="get" action="/historial" class="tarjeta en-linea">
-  <input name="cuenta" placeholder="Filtrar por número de cuenta (opcional)" value="<%= cuenta %>">
-  <button type="submit">Filtrar</button>
+  <input name="cuenta" aria-label="Número de cuenta" placeholder="Número de cuenta" value="<%= cuenta %>">
+  <select name="alcance" aria-label="Tipo de historial">
+    <option value="local" <%= alcance === 'local' ? 'selected' : '' %>>Historial local de la sucursal</option>
+    <option value="cuenta" <%= alcance === 'cuenta' ? 'selected' : '' %>>Historial completo de la cuenta</option>
+  </select>
+  <button type="submit">Consultar</button>
   <% if (cuenta) { %><a href="/historial">Quitar filtro</a><% } %>
 </form>
 
 <% if (error) { %><p class="error"><%= error %></p><% } %>
 
-<h2>Reporte</h2>
+<% if (!error) { %>
+<h2><%= alcance === 'cuenta' ? 'Reporte de la cuenta' : 'Reporte local' %></h2>
 <div class="resumen">
+  <% if (cuentaDetalle) { %>
+    <div class="tarjeta"><span>Saldo actual de la cuenta</span><strong>$<%= dinero(cuentaDetalle.saldo) %></strong></div>
+  <% } %>
   <div class="tarjeta"><span>Operaciones</span><strong><%= reporte.operaciones %></strong></div>
-  <div class="tarjeta"><span>Monto total</span><strong>$<%= reporte.monto_total.toLocaleString('es-MX') %></strong></div>
+  <div class="tarjeta"><span>Suma de importes de los movimientos</span><strong>$<%= dinero(reporte.monto_total) %></strong></div>
   <% Object.entries(reporte.por_tipo).forEach(([tipo, r]) => { %>
-    <div class="tarjeta"><span><%= tipo %></span><strong><%= r.operaciones %> | $<%= r.monto.toLocaleString('es-MX') %></strong></div>
+    <div class="tarjeta"><span><%= tipo %></span><strong><%= r.operaciones %> | $<%= dinero(r.monto) %></strong></div>
   <% }) %>
 </div>
+<p>La suma de importes cuenta cada movimiento por su monto. El saldo actual es el que informa el Banco Central.</p>
 
 <h2>Movimientos</h2>
 <% if (transacciones.length === 0) { %>
   <p>No hay transacciones.</p>
 <% } else { %>
+  <div class="tabla-historial">
   <table>
-    <thead><tr><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Monto</th></tr></thead>
+    <thead><tr><th>Fecha (Ciudad de México)</th><th>Tipo</th><% if (alcance === 'cuenta') { %><th>Nodo que procesó</th><% } %><th>Origen</th><th>Destino</th><th>Monto</th></tr></thead>
     <tbody>
       <% transacciones.forEach(t => { %>
         <tr>
-          <td><%= new Date(t.created_at).toLocaleString('es-MX') %></td>
+          <td><%= new Date(t.created_at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) %></td>
           <td><span class="tipo <%= t.tipo %>"><%= t.tipo %></span></td>
+          <% if (alcance === 'cuenta') { %><td><%= t.nodo?.nombre || 'Nodo' %> (<%= t.nodo?.tipo || 'sin tipo' %>)</td><% } %>
           <td><%= t.cuenta_origen || '—' %></td>
           <td><%= t.cuenta_destino || '—' %></td>
-          <td>$<%= Number(t.monto).toLocaleString('es-MX') %></td>
+          <td>$<%= dinero(t.monto) %></td>
         </tr>
       <% }) %>
     </tbody>
   </table>
+  </div>
+<% } %>
 <% } %>
 <%- include('partials/footer') %>

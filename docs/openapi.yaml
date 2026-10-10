@@ -1,11 +1,12 @@
 openapi: 3.0.3
 info:
   title: Nodo 2 - Sucursal
-  version: 1.1.0
+  version: 1.2.0
   description: API de Sucursal. El servidor consume el Banco Central con
     X-API-KEY. Sin configuración usa datos simulados solo en local; en
     producción devuelve 503. El historial contiene las operaciones procesadas
-    por esta sucursal.
+    por esta sucursal. La ruta /cuentas/{numero}/transacciones devuelve el
+    historial completo de una cuenta abierta por esta sucursal, incluidos cajeros.
 servers:
   - url: /api
 tags:
@@ -113,6 +114,49 @@ paths:
         "500": *a1
         "502": *a1
         "503": *a1
+  /cuentas/{numero}/transacciones:
+    get:
+      tags:
+        - Transacciones
+      summary: Historial completo de la cuenta, incluidos movimientos del cajero
+      description: Solo cuentas abiertas por esta sucursal. Recorre todas las páginas
+        del Banco Central antes de responder y añade el nodo que procesó cada movimiento.
+        /transacciones y /reportes conservan su alcance local.
+      parameters:
+        - in: path
+          name: numero
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista completa de movimientos de la cuenta
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Transaccion"
+                    - type: object
+                      properties:
+                        nodo:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            nombre:
+                              type: string
+                            tipo:
+                              type: string
+                              enum: [sucursal, cajero]
+        "401": *a1
+        "403": *a1
+        "404": *a1
+        "500": *a1
+        "502": *a1
+        "503": *a1
   /transacciones:
     get:
       tags:
@@ -142,7 +186,7 @@ paths:
     get:
       tags:
         - Transacciones
-      summary: Reporte de operaciones (totales por tipo)
+      summary: Reporte local de la sucursal (totales por tipo)
       parameters:
         - in: query
           name: cuenta

@@ -5,6 +5,7 @@ const asyncRoute = require('../middlewares/asyncRoute');
 router.get('/estado', asyncRoute(c.estado));
 router.post('/cuentas', asyncRoute(c.crearCuenta));
 router.get('/cuentas/:numero', asyncRoute(c.getCuenta));
+router.get('/cuentas/:numero/transacciones', asyncRoute(c.getTransaccionesCuenta));
 router.get('/transacciones', asyncRoute(c.getTransacciones));
 router.get('/reportes', asyncRoute(c.getReporte));
 

@@ -107,13 +107,13 @@ function adaptarTransaccion(t) {
   };
 }
 
-async function transaccionesCentrales(cuenta) {
+async function transaccionesCentrales(cuenta, ruta = '/transactions') {
   const todas = [];
   let pagina = 1;
   while (true) {
     const params = new URLSearchParams({ page: pagina });
     if (cuenta) params.set('cuenta', cuenta);
-    const datos = await llamar('GET', `/transactions?${params}`);
+    const datos = await llamar('GET', `${ruta}?${params}`);
     const lista = Array.isArray(datos) ? datos : datos?.data;
     if (!Array.isArray(lista)) throw error(502, 'Historial inválido del Banco Central');
     todas.push(...lista);
@@ -140,4 +140,16 @@ async function getTransacciones(cuenta) {
   }
 }
 
-module.exports = { getNodo, crearCuenta, getCuenta, getTransacciones };
+async function getTransaccionesCuenta(numero) {
+  if (usarDatosFalsos()) {
+    await mock.getCuenta(numero);
+    return (await mock.getTransacciones(numero)).map(t => ({ ...t, nodo: { nombre: 'Sucursal de prueba', tipo: 'sucursal' } }));
+  }
+  const ruta = `/accounts/${encodeURIComponent(numero)}/transactions`;
+  return (await transaccionesCentrales(undefined, ruta)).map(t => ({
+    ...adaptarTransaccion(t),
+    nodo: { id: t.nodo_id, nombre: t.nodo_nombre, tipo: t.nodo_tipo }
+  }));
+}
+
+module.exports = { getNodo, crearCuenta, getCuenta, getTransacciones, getTransaccionesCuenta };

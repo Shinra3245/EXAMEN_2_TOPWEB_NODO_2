@@ -22,6 +22,7 @@ function createApp() {
   app.use(logger);
   app.use((req, res, next) => {
     res.locals.ruta = req.path;
+    res.locals.dinero = valor => Number(valor).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     next();
   });
 

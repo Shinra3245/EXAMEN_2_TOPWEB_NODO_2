@@ -7,6 +7,7 @@ const { randomUUID } = require('node:crypto');
 const cuentas = new Map();
 const movimientos = [];
 let adicionales = [];
+let movimientosCajero = [];
 let modo = 'normal';
 let falloDespuesDeGuardar = false;
 let centralServer, sucursalServer, url;
@@ -23,6 +24,16 @@ central.post('/api/accounts', (req, res) => {
   res.status(201).json({ account: cuenta });
 });
 central.get('/api/accounts/:numero', (req, res) => cuentas.has(req.params.numero) ? res.json(cuentas.get(req.params.numero)) : res.status(404).json({ message: 'Cuenta no encontrada' }));
+central.get('/api/accounts/:numero/transactions', (req, res) => {
+  if (modo === '401') return res.status(401).json({ error: 'Invalid API Key' });
+  if (modo === '503') return res.status(503).json({ message: 'Central no disponible' });
+  if (!cuentas.has(req.params.numero)) return res.status(404).json({ message: 'Cuenta no encontrada en esta sucursal.' });
+  if (modo === 'malformado') return res.json({ data: 'respuesta inválida' });
+  const lista = [...movimientos, ...adicionales, ...movimientosCajero].filter(t => t.cuenta_destino === req.params.numero || t.cuenta_origen === req.params.numero);
+  const page = Number(req.query.page || 1), last = Math.max(1, Math.ceil(lista.length / 50));
+  const next = modo === 'bucle' ? page : page < last ? page + 1 : null;
+  res.json({ data: lista.slice((page - 1) * 50, page * 50).map(t => ({ nodo_id: 'branch-test', nodo_nombre: 'Sucursal de prueba', nodo_tipo: 'sucursal', ...t })), current_page: page, last_page: last, next_page_url: next ? `/api/accounts/${encodeURIComponent(req.params.numero)}/transactions?page=${next}` : null });
+});
 central.get('/api/transactions', (req, res) => {
   if (modo === '404') return res.status(404).json({ message: 'Ruta inexistente' });
   if (modo === '401') return res.status(401).json({ error: 'Invalid API Key' });
@@ -146,6 +157,79 @@ test('Historial y reporte incluyen más de 1,000 movimientos', async () => {
     const report = (await request('/api/reportes?cuenta=mas-de-20-paginas')).json();
     assert.equal(report.operaciones, 1051); assert.equal(report.monto_total, 105.1); assert.equal(report.por_tipo.deposito.monto, 105.1);
   } finally { adicionales = []; }
+});
+test('Historial completo incluye cajero y saldo actual; el reporte local conserva solo la apertura', async () => {
+  const apertura = await request('/api/cuentas', { titular: 'Cliente historial', saldo_inicial: 1000 });
+  const numero = apertura.json().numero_cuenta;
+  cuentas.get(numero).saldo_global = '3000.90';
+  movimientosCajero = [
+    ...['300.90','1000.00','1000.00'].map(monto => ({ tipo: 'deposito', monto, cuenta_origen: null, cuenta_destino: numero })),
+    ...Array.from({ length: 3 }, () => ({ tipo: 'retiro', monto: '100.00', cuenta_origen: numero, cuenta_destino: null }))
+  ].map(t => ({ ...t, nodo_id: 'atm-test', nodo_nombre: 'Cajero prueba', nodo_tipo: 'cajero', created_at: '2026-10-10T02:56:00Z' }));
+  try {
+    const completo = await request(`/api/cuentas/${numero}/transacciones`);
+    assert.equal(completo.status, 200); assert.equal(completo.json().length, 7);
+    assert.equal(completo.json().filter(t => t.nodo.tipo === 'cajero').length, 6);
+    assert.equal((await request('/api/transacciones?cuenta=' + numero)).json().length, 1);
+    assert.equal((await request('/api/reportes?cuenta=' + numero)).json().monto_total, 1000);
+    const page = await request('/historial?cuenta=' + numero);
+    assert.equal(page.status, 200);
+    for (const text of ['Historial completo de la cuenta','Saldo actual de la cuenta','$3,000.90','$3,600.90','Cajero prueba','Ciudad de México']) assert.ok(page.text.includes(text), text);
+    assert.ok(page.text.includes('9/10/2026')); assert.ok(!page.text.includes('10/10/2026'));
+    const local = await request(`/historial?cuenta=${numero}&alcance=local`);
+    assert.equal(local.status, 200); assert.ok(local.text.includes('Historial local de la sucursal'));
+    assert.ok(local.text.includes('$1,000.00')); assert.ok(!local.text.includes('Cajero prueba'));
+    const cuenta = await request('/cuentas/buscar?numero=' + numero);
+    assert.ok(cuenta.text.includes('$3,000.90')); assert.ok(cuenta.text.includes('alcance=cuenta'));
+  } finally { movimientosCajero = []; }
+});
+test('Historial completo recorre todas las páginas de más de 1,000 movimientos', async () => {
+  const numero = 'cuenta-historial-paginado';
+  cuentas.set(numero, { numero_cuenta: numero, nombre_titular: 'Paginación', saldo_global: '105.10', estado: 'activa' });
+  adicionales = Array.from({ length: 1051 }, () => ({ tipo: 'deposito', monto: '0.10', cuenta_origen: null, cuenta_destino: numero, created_at: '2026-10-09T23:00:00Z' }));
+  try {
+    const history = await request(`/api/cuentas/${numero}/transacciones`);
+    assert.equal(history.status, 200); assert.equal(history.json().length, 1051);
+  } finally { adicionales = []; cuentas.delete(numero); }
+});
+test('Cuenta inexistente en historial completo devuelve 404 sin mostrar reporte vacío', async () => {
+  assert.equal((await request('/api/cuentas/inexistente/transacciones')).status, 404);
+  const page = await request('/historial?cuenta=inexistente');
+  assert.equal(page.status, 404); assert.ok(page.text.includes('Cuenta no encontrada'));
+  assert.ok(!page.text.includes('Suma de importes de los movimientos'));
+});
+test('Cuenta existente sin movimientos muestra saldo y reporte cero', async () => {
+  const opening = await request('/api/cuentas', { titular: 'Sin movimientos', saldo_inicial: 0 });
+  const numero = opening.json().numero_cuenta;
+  const history = await request(`/api/cuentas/${numero}/transacciones`);
+  assert.equal(history.status, 200); assert.deepEqual(history.json(), []);
+  const page = await request('/historial?cuenta=' + numero);
+  assert.equal(page.status, 200); assert.ok(page.text.includes('$0.00')); assert.ok(page.text.includes('No hay transacciones.'));
+});
+test('Historial completo no muestra totales parciales ante fallo o paginación inválida', async () => {
+  const opening = await request('/api/cuentas', { titular: 'Fallo historial', saldo_inicial: 1000 });
+  const numero = opening.json().numero_cuenta;
+  try {
+    for (const [value, expected] of [['503',503],['401',401],['malformado',502],['bucle',502]]) {
+      modo = value;
+      const page = await request('/historial?cuenta=' + numero);
+      assert.equal(page.status, expected); assert.ok(!page.text.includes('Suma de importes de los movimientos'));
+    }
+  } finally { modo = 'normal'; }
+});
+test('Historial valida alcance y requiere cuenta para la consulta completa', async () => {
+  for (const path of ['/historial?alcance=cuenta','/historial?cuenta=%20&alcance=cuenta','/historial?alcance=invalido','/historial?alcance[x]=cuenta','/historial?alcance=cuenta&alcance=local']) {
+    assert.equal((await request(path)).status, 400);
+  }
+});
+test('Historial completo escapa nombres de nodos al presentar movimientos', async () => {
+  const opening = await request('/api/cuentas', { titular: 'Escapado', saldo_inicial: 0 });
+  const numero = opening.json().numero_cuenta;
+  movimientosCajero = [{ tipo: 'deposito', monto: '1.00', cuenta_destino: numero, created_at: '2026-10-09T23:00:00Z', nodo_nombre: '<script>alert(1)</script>', nodo_tipo: 'cajero' }];
+  try {
+    const page = await request('/historial?cuenta=' + numero);
+    assert.equal(page.status, 200); assert.ok(page.text.includes('&lt;script&gt;')); assert.ok(!page.text.includes('<script>alert(1)</script>'));
+  } finally { movimientosCajero = []; }
 });
 for (const [value, expected] of [['404',404],['401',401],['503',503],['malformado',502]]) {
   test(`Conexión rechaza Central ${value}`, async () => {

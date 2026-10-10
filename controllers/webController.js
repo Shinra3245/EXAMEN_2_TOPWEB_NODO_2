@@ -78,14 +78,24 @@ async function buscarCuenta(req, res) {
 async function historial(req, res) {
   if (req.query.cuenta !== undefined && typeof req.query.cuenta !== 'string') return res.status(400).render('error', { titulo: 'Error', mensaje: 'El filtro cuenta debe ser un texto', status: 400 });
   const cuenta = (req.query.cuenta || '').trim();
+  const alcance = req.query.alcance ?? (cuenta ? 'cuenta' : 'local');
+  if (!['local', 'cuenta'].includes(alcance)) return res.status(400).render('error', { titulo: 'Error', mensaje: 'Selecciona historial local o de cuenta', status: 400 });
+  if (alcance === 'cuenta' && !cuenta) return res.status(400).render('error', { titulo: 'Error', mensaje: 'Indica el número de cuenta para consultar su historial completo', status: 400 });
   let transacciones = [];
+  let cuentaDetalle = null;
+  let reporte = null;
   let error = null;
   try {
-    transacciones = await central.getTransacciones(cuenta || undefined);
+    transacciones = alcance === 'cuenta'
+      ? await central.getTransaccionesCuenta(cuenta)
+      : await central.getTransacciones(cuenta || undefined);
+    if (cuenta) cuentaDetalle = await central.getCuenta(cuenta);
+    reporte = resumen(transacciones);
   } catch (e) {
     error = e.message;
+    res.status(e.status || 500);
   }
-  res.render('historial', { titulo: 'Historial y reporte', cuenta, transacciones, reporte: resumen(transacciones), error, modoPrueba: usarDatosFalsos() });
+  res.render('historial', { titulo: 'Historial y reporte', cuenta, alcance, cuentaDetalle, transacciones, reporte, error, modoPrueba: usarDatosFalsos() });
 }
 
 module.exports = { inicio, verConfig, probarConexion, formNuevaCuenta, crearCuenta, buscarCuenta, historial };

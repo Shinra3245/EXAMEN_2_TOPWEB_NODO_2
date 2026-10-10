@@ -11,9 +11,9 @@
   <div class="tarjeta">
     <p><strong>Cuenta:</strong> <%= cuenta.numero_cuenta %></p>
     <p><strong>Titular:</strong> <%= cuenta.titular %></p>
-    <p><strong>Saldo:</strong> $<%= Number(cuenta.saldo).toLocaleString('es-MX') %></p>
+    <p><strong>Saldo:</strong> $<%= dinero(cuenta.saldo) %></p>
     <p><strong>Estado:</strong> <span class="estado <%= cuenta.estado %>"><%= cuenta.estado %></span></p>
-    <a href="/historial?cuenta=<%= encodeURIComponent(cuenta.numero_cuenta) %>">Ver movimientos</a>
+    <a href="/historial?cuenta=<%= encodeURIComponent(cuenta.numero_cuenta) %>&amp;alcance=cuenta">Ver historial completo de la cuenta</a>
   </div>
 <% } %>
 <%- include('partials/footer') %>

@@ -72,7 +72,9 @@ Para reintentar `POST /api/cuentas`, enviar la misma `idempotency_key` en el JSO
 
 Si se omite la clave, cada solicitud representa una apertura nueva. El formulario ya incluye una clave oculta que se conserva al reintentar o corregir un error. El número de cuenta y la clave central se derivan del intento y la sucursal, por lo que la protección sobrevive al reinicio del servidor y no necesita otra base de datos. El Central mantiene las cuentas y el ledger. Las credenciales de la sucursal deben conservarse durante un reintento.
 
-El historial recorre todas las páginas del Central y rechaza respuestas o paginación inválidas. Los reportes se suman en centavos. Historial local significa movimientos procesados por esta sucursal; los retiros del ATM pertenecen al historial del Nodo 3, mientras que el saldo de la cuenta siempre se consulta al Central.
+El historial recorre todas las páginas del Central y rechaza respuestas o paginación inválidas. Los reportes se suman en centavos. `/historial` muestra el historial local de la sucursal; `/historial?cuenta=NUMERO` muestra el historial completo de esa cuenta, incluidos movimientos del cajero. El selector permite volver al reporte local con `alcance=local`. El saldo actual se muestra separado de la suma de importes, con dos decimales, y las fechas usan Ciudad de México.
+
+La API conserva `/api/transacciones` y `/api/reportes` como consultas locales. `/api/cuentas/{numero}/transacciones` devuelve el historial completo con el nombre y tipo del nodo que procesó cada movimiento. El Banco Central autoriza esta consulta únicamente a la sucursal que abrió la cuenta. La suite aislada incluye 43 pruebas, con regresión del caso de movimientos del cajero y paginación de más de 1,000 registros.
 
 ## Enlaces
 

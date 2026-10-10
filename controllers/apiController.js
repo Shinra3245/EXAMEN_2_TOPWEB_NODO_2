@@ -42,6 +42,14 @@ async function getTransacciones(req, res, next) {
   }
 }
 
+async function getTransaccionesCuenta(req, res, next) {
+  try {
+    res.json(await central.getTransaccionesCuenta(req.params.numero));
+  } catch (e) {
+    next(e);
+  }
+}
+
 async function getReporte(req, res, next) {
   try {
     if (req.query.cuenta !== undefined && typeof req.query.cuenta !== 'string') return res.status(400).json({ error: 'El filtro cuenta debe ser un texto' });
@@ -52,4 +60,4 @@ async function getReporte(req, res, next) {
   }
 }
 
-module.exports = { estado, crearCuenta, getCuenta, getTransacciones, getReporte };
+module.exports = { estado, crearCuenta, getCuenta, getTransacciones, getTransaccionesCuenta, getReporte };

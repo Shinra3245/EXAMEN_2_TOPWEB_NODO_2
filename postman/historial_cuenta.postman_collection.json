@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "Examen - revisión de historial completo y local",
+    "_postman_id": "144261b4-f8eb-4a41-90b4-487586f99ac6",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo consultas GET. Compara historial completo por cuenta y local; revisa saldo, pantalla, permisos y errores. Importar el entorno de los tres nodos, poner claves privadas y cuenta_revision. No crea cuentas ni cambia saldos."
+  },
+  "variable": [
+    {
+      "key": "cuenta_revision",
+      "value": "05279518635376421747"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Saldo actual en Central",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "{{sucursal_api_key}}"
+          }
+        ],
+        "url": "{{central_url}}/api/accounts/{{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json(); pm.environment.set('saldo_revision',j.saldo_global); pm.test('Saldo decimal válido',()=>pm.expect(j.saldo_global).to.match(/^\\d+\\.\\d{2}$/));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Historial completo autorizado en Central",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "{{sucursal_api_key}}"
+          }
+        ],
+        "url": "{{central_url}}/api/accounts/{{cuenta_revision}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();pm.environment.set('movimientos_completos',j.total);",
+              "pm.test('Historial completo paginado',()=>{pm.expect(j.data).to.be.an('array');pm.expect(j.total).to.be.at.least(j.data.length);});",
+              "pm.test('Nodo visible, claves privadas ausentes',()=>j.data.forEach(t=>{pm.expect(t).to.have.property('nodo_tipo');pm.expect(t).not.to.have.property('idempotency_key');}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Historial local del Central",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "{{sucursal_api_key}}"
+          }
+        ],
+        "url": "{{central_url}}/api/transactions?cuenta={{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.environment.set('movimientos_locales',pm.response.json().total);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Sucursal incluye todos los movimientos de la cuenta",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/api/cuentas/{{cuenta_revision}}/transacciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('Todos los movimientos del Central',()=>pm.expect(j.length).to.eql(Number(pm.environment.get('movimientos_completos'))));",
+              "pm.test('Cuenta y nodo de cada movimiento',()=>j.forEach(t=>{pm.expect(t.cuenta_origen===pm.variables.get('cuenta_revision')||t.cuenta_destino===pm.variables.get('cuenta_revision')).to.be.true;pm.expect(t.nodo).to.have.property('nombre');}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Historial local conserva su alcance",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/api/transacciones?cuenta={{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();pm.environment.set('monto_local',j.reduce((s,t)=>s+Math.round(t.monto*100),0)/100);",
+              "pm.test('Solo movimientos locales',()=>pm.expect(j.length).to.eql(Number(pm.environment.get('movimientos_locales'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Reporte local conserva sus totales",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/api/reportes?cuenta={{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Reporte coincide con historial local',()=>{const j=pm.response.json();pm.expect(j.operaciones).to.eql(Number(pm.environment.get('movimientos_locales')));pm.expect(j.monto_total).to.eql(Number(pm.environment.get('monto_local')));});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Pantalla completa y saldo con dos decimales",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/historial?cuenta={{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const html=pm.response.text();",
+              "pm.test('Historial completo y hora de México',()=>{pm.expect(html).to.include('Historial completo de la cuenta');pm.expect(html).to.include('Ciudad de México');});",
+              "pm.test('Saldo actual con dos decimales',()=>pm.expect(html).to.include('$'+Number(pm.environment.get('saldo_revision')).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})));",
+              "pm.test('Todos los movimientos en pantalla',()=>pm.expect((html.match(/<tr>/g)||[]).length-1).to.eql(Number(pm.environment.get('movimientos_completos'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Pantalla local explícita",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/historial?cuenta={{cuenta_revision}}&alcance=local"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Vista local identificada',()=>pm.expect(pm.response.text()).to.include('Historial local de la sucursal'));",
+              "pm.test('Cantidad de filas local',()=>pm.expect((pm.response.text().match(/<tr>/g)||[]).length-1).to.eql(Number(pm.environment.get('movimientos_locales'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Consulta de cuenta enlaza al historial completo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/cuentas/buscar?numero={{cuenta_revision}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Acceso al historial completo',()=>pm.expect(pm.response.text()).to.include('alcance=cuenta'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Cajero no puede consultar historial completo ajeno",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "{{cajero_api_key}}"
+          }
+        ],
+        "url": "{{central_url}}/api/accounts/{{cuenta_revision}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403',()=>pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Clave falsa rechazada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "invalid-history-review-key"
+          }
+        ],
+        "url": "{{central_url}}/api/accounts/{{cuenta_revision}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Cuenta inexistente sin reporte vacío",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/historial?cuenta=revision-cuenta-inexistente"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404',()=>pm.response.to.have.status(404));",
+              "pm.test('Error visible sin totales parciales',()=>{const h=pm.response.text();pm.expect(h).to.include('Cuenta no encontrada');pm.expect(h).not.to.include('Suma de importes de los movimientos');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Historial completo requiere cuenta",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{sucursal_url}}/historial?alcance=cuenta"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400',()=>pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

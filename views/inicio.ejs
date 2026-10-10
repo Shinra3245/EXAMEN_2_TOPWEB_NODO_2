@@ -8,7 +8,7 @@
     <p><span class="etiqueta">Nodo</span><%= nodo.nombre %></p>
     <p><span class="etiqueta">Tipo</span><%= nodo.tipo %></p>
     <% if (nodo.efectivo_disponible !== undefined) { %>
-      <p><span class="etiqueta">Efectivo disponible</span>$<%= Number(nodo.efectivo_disponible).toLocaleString('es-MX') %></p>
+      <p><span class="etiqueta">Efectivo disponible</span>$<%= dinero(nodo.efectivo_disponible) %></p>
     <% } %>
   </div>
 <% } %>

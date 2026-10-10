@@ -7,7 +7,7 @@
     <p><strong>Cuenta creada</strong></p>
     <p>Número de cuenta: <strong><%= cuenta.numero_cuenta %></strong></p>
     <p>Titular: <%= cuenta.titular %></p>
-    <p>Saldo: $<%= Number(cuenta.saldo).toLocaleString('es-MX') %></p>
+    <p>Saldo: $<%= dinero(cuenta.saldo) %></p>
   </div>
 <% } %>
 
