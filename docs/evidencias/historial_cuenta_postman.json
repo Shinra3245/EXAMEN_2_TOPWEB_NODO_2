@@ -1,0 +1,220 @@
+{
+  "verified_at_utc": "2026-10-10T04:27:48.541213+00:00",
+  "scope": "Read-only regression on published Central and Branch; no monetary mutations",
+  "account": "05279518635376421747",
+  "balance": "3000.90",
+  "branch_local_movements": 1,
+  "complete_account_movements": 7,
+  "atm_movements": 6,
+  "code_test_results": {
+    "central": 51,
+    "central_assertions": 318,
+    "branch": 43,
+    "branch_dependency_audit": "0 vulnerabilities"
+  },
+  "postman": {
+    "requests": {
+      "total": 13,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 27,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": 0,
+  "validated_application_commits": {
+    "NODE1": "a90301eac6ce5bf26272386515151efea824f8df",
+    "NODE2": "4f21085c062b0316e8c2e2f788dd12dc88e5a0ca"
+  },
+  "checks": [
+    {
+      "name": "01 Saldo actual en Central",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Saldo decimal válido",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "02 Historial completo autorizado en Central",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Historial completo paginado",
+          "passed": true
+        },
+        {
+          "name": "Nodo visible, claves privadas ausentes",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "03 Historial local del Central",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "04 Sucursal incluye todos los movimientos de la cuenta",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Todos los movimientos del Central",
+          "passed": true
+        },
+        {
+          "name": "Cuenta y nodo de cada movimiento",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "05 Historial local conserva su alcance",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Solo movimientos locales",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "06 Reporte local conserva sus totales",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Reporte coincide con historial local",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "07 Pantalla completa y saldo con dos decimales",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Historial completo y hora de México",
+          "passed": true
+        },
+        {
+          "name": "Saldo actual con dos decimales",
+          "passed": true
+        },
+        {
+          "name": "Todos los movimientos en pantalla",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "08 Pantalla local explícita",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Vista local identificada",
+          "passed": true
+        },
+        {
+          "name": "Cantidad de filas local",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "09 Consulta de cuenta enlaza al historial completo",
+      "status": 200,
+      "assertions": [
+        {
+          "name": "HTTP 200",
+          "passed": true
+        },
+        {
+          "name": "Acceso al historial completo",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "10 Cajero no puede consultar historial completo ajeno",
+      "status": 403,
+      "assertions": [
+        {
+          "name": "HTTP 403",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "11 Clave falsa rechazada",
+      "status": 401,
+      "assertions": [
+        {
+          "name": "HTTP 401",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "12 Cuenta inexistente sin reporte vacío",
+      "status": 404,
+      "assertions": [
+        {
+          "name": "HTTP 404",
+          "passed": true
+        },
+        {
+          "name": "Error visible sin totales parciales",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "13 Historial completo requiere cuenta",
+      "status": 400,
+      "assertions": [
+        {
+          "name": "HTTP 400",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

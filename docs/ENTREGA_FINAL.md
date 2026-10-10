@@ -13,15 +13,17 @@ La implementación e integración de los tres nodos está completada en Render. 
 - [Resumen para el equipo](RESUMEN_EQUIPO.md).
 - [Requisitos y evidencias](REQUISITOS_EXAMEN.md).
 - [Guion de 10 minutos](GUION_DEMOSTRACION.md).
-- [Flujo Postman](FLUJO_TRES_NODOS.md), [colección](../postman/tres_nodos_render.postman_collection.json) y [entorno sin secretos](../postman/tres_nodos_render.postman_environment.json).
+- [Flujo Postman](FLUJO_TRES_NODOS.md), [colección](postman/tres_nodos_render.postman_collection.json) y [entorno sin secretos](postman/tres_nodos_render.postman_environment.json).
 - OpenAPI en el workspace: `NODE1/openapi.yaml`, `NODE2_CORRECCIONES/docs/openapi.yaml` y `NODE3_INTEGRACION/openapi.json`. El paquete incluye copias en `openapi/`.
 - [Respaldo y recuperación](RESPALDO_NODO3.md).
 
 ## Validación
 
-Las suites registradas aprobaron 43 pruebas PostgreSQL del Central, 36 de sucursal y 39 del cajero. El ensayo conjunto aprobó 46 solicitudes / 49 aserciones: apertura $1,000, retiro $300, saldo $700, depósito, rechazos, reintentos y cinco consultas después del reinicio de Render.
+Las suites registradas aprobaron 51 pruebas PostgreSQL del Central, 43 de sucursal y 39 del cajero. El ensayo conjunto aprobó 46 solicitudes / 49 aserciones: apertura $1,000, retiro $300, saldo $700, depósito, rechazos, reintentos y cinco consultas después del reinicio de Render.
 
 La cuenta original `13447350977369660092` conserva $700. El ensayo de cierre y su estado operativo se registran en [ensayo_entrega_postman.json](evidencias/ensayo_entrega_postman.json). El respaldo se verifica mediante [restauración local aislada](evidencias/respaldo_nodo3_verificado.json).
+
+La corrección posterior del historial completo por cuenta aprobó [13 consultas / 27 aserciones Postman](evidencias/historial_cuenta_postman.json), con siete movimientos visibles y saldo $3,000.90 en la cuenta reportada. Se incluye [la colección de revisión](postman/historial_cuenta.postman_collection.json).
 
 El paquete `ENTREGA_EXAMEN_TOPWEB.zip` contiene documentación, contratos, Postman y evidencias, con manifiesto y `SHA256SUMS`. No incluye `.env`, sesiones, contraseñas, API Keys ni el dump privado. El código se entrega en los tres repositorios GitHub.
 

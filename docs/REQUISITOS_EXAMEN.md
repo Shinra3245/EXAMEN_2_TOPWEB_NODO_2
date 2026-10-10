@@ -9,7 +9,7 @@ Comparación con el PDF del examen. Por la aclaración del profesor comunicada p
 | RLS, Auth y Realtime | Auth administrativo, API Keys por nodo, RLS y canal privado. `nodo3_realtime_panel.json`: conexión autorizada, aviso y rechazo anónimo. |
 | Nodos, responsables y efectivo | Panel central `/admin`; capturas de nodos/inventario y contrato `nodes/me`. |
 | Historial global por nodo y reportes | Filtros y CSV; `nodo1_filtros_corregidos.json` y captura del historial conjunto. |
-| Sucursal: apertura, historial y reportes | Implementados; 36 pruebas aisladas y validación publicada en `VALIDACION.md`. |
+| Sucursal: apertura, historial y reportes | Historial local y completo por cuenta implementados; 43 pruebas aisladas y 13 consultas / 27 aserciones publicadas en `CORRECCIONES_NODO2.md`. |
 | Cajero: consulta, retiro y depósito | Flujo real $1,000 → retiro $300 → saldo $700; depósito separado de $50.15. |
 | Efectivo local y panel de API Key | PostgreSQL propio, reservas, panel técnico y sincronización; rechazo local e inventarios coincidentes. |
 | Consistencia e historial inmutable | 46 solicitudes / 49 aserciones; reintentos con un único movimiento. La suite del Core comprueba rechazo de edición/borrado del ledger. |

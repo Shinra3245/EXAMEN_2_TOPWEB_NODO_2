@@ -4,7 +4,7 @@
 - Sucursal: https://sucursal-nodo2.onrender.com
 - Cajero: https://node3-atm.onrender.com
 
-Importar `../postman/tres_nodos_render.postman_collection.json` y `../postman/tres_nodos_render.postman_environment.json` en Postman. Las URL ya están configuradas; el entorno público no contiene secretos.
+Importar `postman/tres_nodos_render.postman_collection.json` y `postman/tres_nodos_render.postman_environment.json` en Postman. Las URL ya están configuradas; el entorno público no contiene secretos.
 
 En un entorno privado completar `sucursal_api_key`, `cajero_api_key`, `admin_username` y `admin_password`. Las credenciales del técnico están en el archivo privado `.local-admin.render.txt` de `NODE3_INTEGRACION`; las claves de los nodos están en `NODE1/.env.nodos.local`. Mantenerlas fuera de capturas, Git y exportaciones compartidas.
 
@@ -38,3 +38,11 @@ El cajero responde `200 data.status=succeeded`, `202 pending` o `422 rejected`. 
 Cada push a `main` del Nodo 3 ejecuta las pruebas con PostgreSQL y la auditoría de dependencias. Si pasan, GitHub Actions solicita a Render desplegar ese commit mediante un Deploy Hook guardado como secreto. La configuración, el efectivo, las operaciones y las sesiones están en PostgreSQL propio; los reinicios del servicio conservan esos datos.
 
 La base gratuita de Render expira a los 30 días. Registrar su fecha real de vencimiento en el reporte de entrega y preparar un respaldo antes si el examen será posterior.
+
+## Historial completo por cuenta y reporte local
+
+La sucursal conserva `/api/transacciones` y `/api/reportes` como historial y reporte locales. `/api/cuentas/{numero}/transacciones` incluye todos los movimientos de una cuenta abierta por esa sucursal, también los procesados por cajeros. El Central autoriza esa consulta en `/api/accounts/{numero}/transactions`; cajeros reciben 403 y cuentas de otras sucursales reciben 404.
+
+En el panel, consultar una cuenta y abrir **Ver historial completo de la cuenta**. El selector permite cambiar al historial local. La pantalla presenta saldo actual, importes por tipo y el nodo que procesó cada movimiento; la suma de importes es distinta del saldo. Los montos muestran dos decimales y las fechas usan Ciudad de México.
+
+Importar `postman/historial_cuenta.postman_collection.json` junto con el entorno de los tres nodos. Completar las claves privadas y `cuenta_revision` con una cuenta de esta sucursal. Ejecutar las 13 consultas GET: comparan el historial completo y local, saldo, pantallas y restricciones. Este flujo no crea cuentas ni realiza depósitos o retiros.

@@ -24,3 +24,17 @@ Descargar las correcciones desde `main`, conservando primero cualquier cambio lo
 Importar la [colección](../postman/verificacion_nodo2.postman_collection.json) y el [entorno sin credenciales](../postman/verificacion_nodo2.postman_environment.json). La ejecución completa crea tres cuentas; las carpetas 00 y 04 revisan una publicación posterior sin crear cuentas, reutilizando el entorno privado exportado y actualizando `expected_commit`.
 
 **Integración del Nodo 3 completada:** https://node3-atm.onrender.com. Se comprobaron apertura de $1,000 en la sucursal, retiro de $300 desde el cajero, saldo $700 en los tres nodos, efectivo coincidente, rechazo sin efectivo, depósito y reinicio del ATM. La colección conjunta aprobó 46 solicitudes / 49 aserciones y se entrega en `postman/` del repositorio del Nodo 3.
+
+## Corrección del historial completo por cuenta
+
+El reporte de los compañeros quedó resuelto: la cuenta `05279518635376421747` tiene siete movimientos, uno de la sucursal y seis del cajero, con saldo **$3,000.90**. La pantalla de sucursal ahora permite consultar el historial completo de esa cuenta y distinguirlo del historial local. Muestra el saldo actual separado de la suma de importes, el nodo que procesó cada movimiento, dos decimales y fechas de Ciudad de México.
+
+El Central agregó `GET /api/accounts/{numero}/transactions`, autorizado únicamente a la sucursal que abrió la cuenta. `GET /api/transactions` conserva su aislamiento por nodo. La sucursal agregó `GET /api/cuentas/{numero}/transacciones`; sus rutas de historial y reporte local mantienen el contrato anterior. La apertura y su recuperación por idempotencia siguen usando el historial local.
+
+**Validación:** 51 pruebas / 318 aserciones PostgreSQL del Central y 43 pruebas de sucursal aprobadas; auditoría de dependencias sin vulnerabilidades. Postman en Render: **13 consultas GET / 27 aserciones, sin fallos**. Se verificaron siete filas en la vista completa, una en la local, navegación desde la consulta de cuenta y uso en pantalla móvil. No se realizaron depósitos, retiros ni cambios de saldo.
+
+- [Resultados Postman](evidencias/historial_cuenta_postman.json).
+- [Captura del historial completo](evidencias/historial_cuenta_cuenta_corregido.png) y [local](evidencias/historial_cuenta_local_corregido.png).
+- [Colección de consultas](../postman/historial_cuenta.postman_collection.json).
+
+Para probarlo: consultar la cuenta en la sucursal y abrir **Ver historial completo de la cuenta**. El selector cambia entre historial completo y local. Descargar `main` conservando cambios propios; las aplicaciones ya están publicadas en Render.

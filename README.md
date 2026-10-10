@@ -90,3 +90,5 @@ La prueba conjunta aprobó apertura de $1,000, retiro real de $300 desde el ATM 
 ## Entrega final del equipo
 
 Consultar [entrega final](docs/ENTREGA_FINAL.md), [guion de 10 minutos](docs/GUION_DEMOSTRACION.md), [resumen del proyecto](docs/RESUMEN_EQUIPO.md) y [respaldo del cajero](docs/RESPALDO_NODO3.md). Se volvió a ensayar el flujo completo en Render con 46 solicitudes / 49 aserciones, sin fallos. El respaldo privado se restauró y verificó en PostgreSQL aislado. La exposición corresponde al equipo.
+
+La [colección de revisión del historial](postman/historial_cuenta.postman_collection.json) compara el caso reportado mediante 13 consultas GET sin generar movimientos. Importarla con el entorno de los tres nodos y completar `cuenta_revision` y las claves privadas.
