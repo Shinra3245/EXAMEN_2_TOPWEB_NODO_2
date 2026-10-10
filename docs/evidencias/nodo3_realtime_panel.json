@@ -1,0 +1,5 @@
+{
+  "authenticated_connection": true,
+  "new_movements_notification": true,
+  "anonymous_join": "error"
+}

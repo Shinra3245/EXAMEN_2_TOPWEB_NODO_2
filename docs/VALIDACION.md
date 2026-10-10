@@ -23,4 +23,4 @@ Descargar las correcciones desde `main`, conservando primero cualquier cambio lo
 
 Importar la [colección](../postman/verificacion_nodo2.postman_collection.json) y el [entorno sin credenciales](../postman/verificacion_nodo2.postman_environment.json). La ejecución completa crea tres cuentas; las carpetas 00 y 04 revisan una publicación posterior sin crear cuentas, reutilizando el entorno privado exportado y actualizando `expected_commit`.
 
-**Pendiente del Nodo 3:** URL y contrato del ATM, retiro de $300 sobre una cuenta de $1,000, saldo $700, efectivo local correcto y rechazo sin efectivo. La colección conjunta está preparada; esas pruebas todavía no se han ejecutado.
+**Integración del Nodo 3 completada:** https://node3-atm.onrender.com. Se comprobaron apertura de $1,000 en la sucursal, retiro de $300 desde el cajero, saldo $700 en los tres nodos, efectivo coincidente, rechazo sin efectivo, depósito y reinicio del ATM. La colección conjunta aprobó 46 solicitudes / 49 aserciones y se entrega en `postman/` del repositorio del Nodo 3.
