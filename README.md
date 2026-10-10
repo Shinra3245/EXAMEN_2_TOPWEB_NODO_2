@@ -81,6 +81,6 @@ El historial recorre todas las páginas del Central y rechaza respuestas o pagin
 - API Central: https://banco-central-nodo1.onrender.com/api
 - OpenAPI Sucursal: https://sucursal-nodo2.onrender.com/docs
 - Salud del proceso: https://sucursal-nodo2.onrender.com/healthz
-- Cajero: pendiente de la URL y contrato reales del Nodo 3.
+- Cajero: https://node3-atm.onrender.com, conectado y validado con el Banco Central.
 
-La prueba conjunta pendiente es apertura de $1,000, retiro real de $300 desde el ATM y saldo $700, más rechazo por falta de efectivo. El flujo y la colección conjunta están preparados en la carpeta `INTEGRACION` del workspace del examen; no se acredita el ATM antes de ejecutar esas pruebas.
+La prueba conjunta aprobó apertura de $1,000, retiro real de $300 desde el ATM y saldo $700, más rechazos, depósito exacto, idempotencia e inventario. Se aprobaron 46 solicitudes y 49 aserciones Postman, incluidas consultas después de reiniciar el cajero. El flujo está en `INTEGRACION` del workspace y en `postman/` del repositorio del Nodo 3.

@@ -38,10 +38,10 @@ La apertura registra el saldo inicial positivo como `deposito`, conforme al esqu
 
 - El administrador crea sucursal y cajero, entrega sus claves y asigna efectivo.
 - El Nodo 2 está publicado en https://sucursal-nodo2.onrender.com y ya adapta sus rutas locales `/api/cuentas` al contrato central `/api/accounts`. La conexión, apertura, historial, reportes y recuperación se verificaron contra Render.
-- El Nodo 3 verifica su efectivo local antes de solicitar un retiro al Core y lo descuenta una sola vez tras la confirmación. Debe conservar el resultado y la clave de idempotencia para reintentos. Su implementación y sus rutas todavía no están en esta carpeta.
+- El Nodo 3 verifica su efectivo local antes de solicitar un retiro al Core y lo descuenta una sola vez tras la confirmación. Debe conservar el resultado y la clave de idempotencia para reintentos. Su implementación está en el repositorio del Nodo 3 y publicada en https://node3-atm.onrender.com.
 - No ejecutar nuevamente `supabase/001_schema.sql` ni usar `migrate:fresh` en Supabase. Los cambios se realizan con migraciones incrementales coordinadas.
 
-La colección conjunta está en `INTEGRACION/postman/` y su guía en `INTEGRACION/README.md`, desde la carpeta EXAMEN. El flujo es apertura de $1,000, retiro de $300, saldo $700, efectivo local correcto y un solo movimiento en el historial. Ese flujo ya se verificó mediante Nodo 2 y llamadas al Core con la clave del cajero. La aceptación desde la aplicación real del Nodo 3 espera su URL.
+La colección conjunta está en `INTEGRACION/postman/` y su guía en `INTEGRACION/README.md`, desde la carpeta EXAMEN. El flujo es apertura de $1,000, retiro de $300, saldo $700, efectivo local correcto y un solo movimiento en el historial. Ese flujo ya se verificó mediante Nodo 2 y llamadas al Core con la clave del cajero. La aceptación desde la aplicación real del Nodo 3 ya está completada.
 
 Las claves de los nodos de demostración están en el archivo privado `NODE1/.env.nodos.local` (desde EXAMEN). Cada agente usa exclusivamente la clave que corresponde a su nodo. No publicarlas ni compartir las credenciales privadas de Supabase.
 
@@ -52,3 +52,7 @@ El Core incorpora `GET /nodes/me` para identificar el nodo y consultar su efecti
 Usar el contrato publicado en [CONTRATO_NODO3.md](https://github.com/Shinra3245/EXAMEN_2_TOPWEB_NODO_1/blob/main/CONTRATO_NODO3.md). Los datos privados del cajero están en `NODE1/.env.nodo3.local` dentro de EXAMEN; `CAJERO_API_KEY` es la clave que se configura en el backend del Nodo 3 según los nombres de variables de su README.
 
 Se aprobaron 43 pruebas PostgreSQL del Core, 36 de Nodo 2 y 54 solicitudes Postman con 107 aserciones. Se verificó recuperación después de reiniciar Render. El panel central cuenta con filtro por nodo, fechas completas, CSV y avisos Realtime privados. Para sincronizar o corregir efectivo, coordinar con el responsable del cajero y comprobar que no existen pendientes locales.
+
+## Unión real de los tres servicios
+
+Cajero publicado: https://node3-atm.onrender.com. Se verificó apertura $1,000 en la sucursal, retiro $300 desde el cajero y saldo $700 en los tres nodos, sin duplicación. Se aprobaron 46 solicitudes y 49 aserciones Postman, incluyendo persistencia de recibos, efectivo y sesión después de reiniciar el cajero. El inventario actual es $1,000.31; las sincronizaciones se coordinan sin pendientes. Las rutas públicas de NODE3 son `/api/atm`, `/api/accounts/{numero}/saldo`, `/api/retiros`, `/api/depositos` y `/api/operaciones/{id}`. Los movimientos reciben `Idempotency-Key` UUID y `monto` decimal como texto.
